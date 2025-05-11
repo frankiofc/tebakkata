@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Tebak Kata</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: url('https://via.placeholder.com/1200x800') no-repeat center center fixed;
+            background-size: cover;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            color: white;
+            text-shadow: 2px 2px 5px rgba(0, 0, 0, 0.7);
+        }
+
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            width: 300px;
+            transition: transform 0.3s ease-in-out;
+        }
+
+        .container:hover {
+            transform: scale(1.05);
+        }
+
+        h1 {
+            margin-bottom: 20px;
+            font-size: 24px;
+            color: #007bff;
+        }
+
+        input {
+            padding: 10px;
+            width: 80%;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #feedback {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #555;
+            font-weight: bold;
+            animation: fadeIn 1s ease;
+        }
+
+        @keyframes fadeIn {
+            0% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+
+        #word-display {
+            font-size: 20px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        /* Tambahan Styling untuk Tombol Clue */
+        button#get-clue {
+            margin-top: 10px;
+            background-color: #28a745;
+        }
+
+        button#get-clue:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Game Tebak Kata</h1>
+        <p>Score: <span id="score">15</span></p>
+        <p>Limit Jawaban: <span id="limit">5</span></p>
+        <div id="word-display"></div>
+        <input type="text" id="user-input" placeholder="Masukkan jawaban...">
+        <button id="submit-answer">Kirim Jawaban</button>
+        <button id="get-clue">Ambil Clue</button>  <!-- Tombol Clue -->
+        <p id="feedback"></p>
+    </div>
+
+    <!-- Efek Suara -->
+    <audio id="correct-sound" src="https://www.soundjay.com/button/beep-07.wav" preload="auto"></audio>
+    <audio id="wrong-sound" src="https://www.soundjay.com/button/beep-09.wav" preload="auto"></audio>
+    <audio id="game-over-sound" src="https://www.soundjay.com/button/beep-10.wav" preload="auto"></audio>
+
+    <script>
+        let score = 15;
+        let limit = 5;
+        let cluesGiven = 0; // Menyimpan jumlah petunjuk yang sudah diberikan
+
+        // Daftar kata yang harus ditebak
+        const words = ["apel", "kucing", "mobil", "buku", "pohon", "meja", "komputer", "sepeda", "rumah", "televisi"];
+        let currentWord = words[Math.floor(Math.random() * words.length)];
+        let correctLetters = [];
+
+        document.getElementById("word-display").innerText = `Tebak kata: ${getClue(currentWord, correctLetters)}`;
+        document.getElementById("score").innerText = score;
+        document.getElementById("limit").innerText = limit;
+
+        document.getElementById("submit-answer").addEventListener("click", checkAnswer);
+        document.getElementById("get-clue").addEventListener("click", giveClue);
+
+        function checkAnswer() {
+            const userInput = document.getElementById("user-input").value.trim().toLowerCase();
+            if (userInput === "") {
+                return;
+            }
+
+            if (userInput === currentWord) {
+                score += 10;
+                correctLetters = [...currentWord];  // All letters are correct
+                document.getElementById("feedback").innerText = "Selamat! Jawaban Anda benar.";
+                document.getElementById("correct-sound").play();  // Play correct sound
+                updateGame();
+            } else if (isCloseAnswer(userInput)) {
+                document.getElementById("feedback").innerText = "Jawaban Anda hampir benar, coba lagi!";
+                document.getElementById("wrong-sound").play();  // Play wrong sound
+            } else {
+                score -= 5;
+                document.getElementById("feedback").innerText = "Jawaban salah! Skor berkurang.";
+                document.getElementById("wrong-sound").play();  // Play wrong sound
+                updateGame();
+            }
+        }
+
+        function isCloseAnswer(userInput) {
+            let matchCount = 0;
+            for (let i = 0; i < userInput.length && i < currentWord.length; i++) {
+                if (userInput[i] === currentWord[i]) {
+                    matchCount++;
+                    if (!correctLetters.includes(i)) {
+                        correctLetters.push(i); // Mark letter as correct
+                    }
+                }
+            }
+            return matchCount >= currentWord.length - 1; // Jawaban hampir benar jika memiliki satu huruf yang benar
+        }
+
+        function getClue(word, correctLetters) {
+            let clue = "";
+            for (let i = 0; i < word.length; i++) {
+                if (correctLetters.includes(i)) {
+                    clue += word[i];  // Reveal correct letter
+                } else {
+                    clue += "_";  // Hide incorrect letters
+                }
+            }
+            return clue;
+        }
+
+        function giveClue() {
+            if (cluesGiven < 3) {  // Batasi jumlah petunjuk, misalnya 3 kali petunjuk
+                for (let i = 0; i < currentWord.length; i++) {
+                    if (!correctLetters.includes(i)) {
+                        correctLetters.push(i);  // Tampilkan satu huruf yang belum benar
+                        break;  // Hanya menampilkan satu huruf pada setiap petunjuk
+                    }
+                }
+                document.getElementById("word-display").innerText = `Tebak kata: ${getClue(currentWord, correctLetters)}`;
+                cluesGiven++;  // Tambah jumlah petunjuk yang sudah diberikan
+            } else {
+                document.getElementById("feedback").innerText = "Anda sudah menggunakan semua petunjuk!";
+            }
+        }
+
+        function updateGame() {
+            limit--;
+            document.getElementById("score").innerText = score;
+            document.getElementById("limit").innerText = limit;
+
+            if (limit <= 0 || score <= 0) {
+                document.getElementById("feedback").innerText = "Game Over! Skor akhir: " + score;
+                document.getElementById("game-over-sound").play();  // Play game over sound
+                document.getElementById("submit-answer").disabled = true;
+            } else {
+                // Pilih kata baru jika masih ada limit
+                currentWord = words[Math.floor(Math.random() * words.length)];
+                correctLetters = []; // Reset correct letters
+                document.getElementById("word-display").innerText = `Tebak kata: ${getClue(currentWord, correctLetters)}`;
+                document.getElementById("user-input").value = "";
+            }
+        }
+    </script>
+</body>
+</html>
